@@ -4,7 +4,7 @@ import json
 import datetime
 import time
 import configparser
-from robot.api import ExecutionResult, ResultVisitor
+import xml.etree.ElementTree as ET
 import sys
 
 '''
@@ -23,7 +23,10 @@ def getConfig(config_file):
             "token": "",
             "project_id": -1,
             "release_id": -1,
-            "test_set_id": -1
+            "test_set_id": -1,
+            "test_case_ids": {
+                "default": -1
+            }
         }
         # Parse the config file
         parser = configparser.ConfigParser()
@@ -33,15 +36,18 @@ def getConfig(config_file):
 
         # Process Configs
         for section in sections:
-            # Handle credentials
+            # Handle credentials and test case mappings differently
             if section == "credentials":
                 for (key, value) in parser.items(section):
                     config[key] = value
+            elif section == "test_cases":
+                for (key, value) in parser.items(section):
+                    config["test_case_ids"][key.lower()] = value
     return config
 
 
 # Name of this extension
-RUNNER_NAME = "Robot-Framework"
+RUNNER_NAME = "xUnit (Python)"
 
 
 class SpiraTestRun:
@@ -186,74 +192,93 @@ class SpiraPostResults():
             return True
 
 
-class SpiraResultVisitor(ResultVisitor):
+class SpiraResultsParser():
     def __init__(self, config_file='spira.cfg'):
+        # Create an array to store the results we want to send to Spira
         self.test_results = []
 
-    def visit_test(self, test):
-        # Extract the test case id from the tags
-        if len(test.tags) == 0:
-            print("The test case '{}' has no tags specified, so skipping this test case.".format(test.name))
-        
-        else:
-            test_case_id = -1
-            for tag in test.tags:
-                m = re.search('TC:([0-9]+)', tag)
-                if m.lastindex == 1:
-                    test_case_id = m.group(1)
-            
-            if test_case_id == -1:
-                print("Unable to find Spira id tag for test case '{}', so skipping this test case.".format(test.name))
+    def parseResults(self, reportFile):
+        # Open up the XML file
+        # create element tree object 
+        xmlDoc = ET.parse(reportFile) 
 
-            else:
-                # Convert the test case status
-                execution_status_id = 3 # Not Run
-                if test.status == "PASS":
-                    # 2 is passed
-                    execution_status_id = 2
-                elif test.status == "SKIP":
-                    # 4 is n/a
-                    execution_status_id = 4
-                elif test.status == "FAIL":
-                    #1 is failed
-                    execution_status_id = 1
-                elif test.status == "NOT RUN":
-                    #5 is blocked
-                    execution_status_id = 5
-                elif test.status == "NOT SET":
-                    #1 is n/a
-                    execution_status_id = 4
+        # get root element 
+        testsuites = xmlDoc.getroot() 
 
-                # Create the details and message
-                message = test.message + ' (' + test.status + ')'
-                details = 'Test Case: ' + test.longname + '\nDocumentation: ' + test.doc + '\nMessage: ' + message + '\n'
+        # iterate over the test suites 
+        for testsuite in testsuites.findall('./testsuite'):
 
-                # Create new test result object
-                test_result = {
-                    'test_case_id': test_case_id,
-                    'name': test.name,
-                    'execution_status_id': execution_status_id,
-                    'stack_trace': details,
-                    'message': message,
-                    'duration_seconds': test.elapsedtime * 1000
-                }
+            # iterate over the test cases in the test suite 
+            for testcase in testsuite.findall('./testcase'):
 
-                # Parse the test case ID, and append the result
-                self.test_results.append(test_result)
+                # extract the basic test information
+                testname = testcase.name
+                classname = testcase.classname
+                elapsedtime = testcase.time
 
-    def end_result(self, result):
+                # find the matching Spira test case id for this classname
+                test_case_id = -1
+                if classname in config["test_case_ids"]:
+                    test_case_id = config["test_case_ids"][classname]
+                else:
+                    test_case_id = config["test_case_ids"]["default"]
+                
+                if test_case_id == -1:
+                    print("Unable to find Spira id tag for test case '{}', so skipping this test case.".format(classname))
+
+                else:
+                    # Convert the test case status
+                    execution_status_id = 3 # Not Run
+                    '''
+                    if test.status == "PASS":
+                        # 2 is passed
+                        execution_status_id = 2
+                    elif test.status == "SKIP":
+                        # 4 is n/a
+                        execution_status_id = 4
+                    elif test.status == "FAIL":
+                        #1 is failed
+                        execution_status_id = 1
+                    elif test.status == "NOT RUN":
+                        #5 is blocked
+                        execution_status_id = 5
+                    elif test.status == "NOT SET":
+                        #1 is n/a
+                        execution_status_id = 4
+                    '''
+
+                    # Create the details and message
+                    message = test.message + ' (' + test.status + ')'
+                    details = 'Test Case: ' + test.longname + '\nDocumentation: ' + test.doc + '\nMessage: ' + message + '\n'
+
+                    # Create new test result object
+                    test_result = {
+                        'test_case_id': test_case_id,
+                        'name': testname + ' (' + classname + ')',
+                        'execution_status_id': execution_status_id,
+                        'stack_trace': details,
+                        'message': message,
+                        'duration_seconds': elapsedtime * 1000
+                    }
+
+                    # Parse the test case ID, and append the result
+                    self.test_results.append(test_result)
+
         # Send the results to Spira
         spira_results = SpiraPostResults(config_file)
         spira_results.sendResults(self.test_results)
                 
 if __name__ == '__main__':
+    # Get the command arguments, if there are any
     try:
-        output_file = sys.argv[1]
+        report_file = sys.argv[1]
     except IndexError:
-        output_file = "output.xml"
+        report_file = "xunit.xml"
     try:
         config_file = sys.argv[2]
     except IndexError:
         config_file = "spira.cfg"
-    result = ExecutionResult(output_file)
-    result.visit(SpiraResultVisitor())
+
+    # Parse the file and report the results
+    spiraResults = SpiraResultsParser(config_file)
+    spiraResults.parseResults(report_file)
