@@ -216,15 +216,16 @@ class SpiraResultsParser():
                 classname = testcase.classname
                 elapsedtime = testcase.time
 
-                # find the matching Spira test case id for this classname
+                # find the matching Spira test case id for this classname.name combination
+                fullname = classname + '.' + testname
                 test_case_id = -1
-                if classname in config["test_case_ids"]:
-                    test_case_id = config["test_case_ids"][classname]
+                if fullname in config["test_case_ids"]:
+                    test_case_id = config["test_case_ids"][fullname]
                 else:
                     test_case_id = config["test_case_ids"]["default"]
                 
                 if test_case_id == -1:
-                    print("Unable to find Spira id tag for test case '{}', so skipping this test case.".format(classname))
+                    print("Unable to find Spira id tag for test case '{}', so skipping this test case.".format(fullname))
 
                 else:
                     # Convert the test case status
@@ -254,7 +255,7 @@ class SpiraResultsParser():
                     # Create new test result object
                     test_result = {
                         'test_case_id': test_case_id,
-                        'name': testname + ' (' + classname + ')',
+                        'name': fullname,
                         'execution_status_id': execution_status_id,
                         'stack_trace': details,
                         'message': message,
