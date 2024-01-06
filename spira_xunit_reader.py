@@ -212,9 +212,9 @@ class SpiraResultsParser():
             for testcase in testsuite.findall('./testcase'):
 
                 # extract the basic test information
-                testname = testcase.name
-                classname = testcase.classname
-                elapsedtime = testcase.time
+                testname = testcase.get('name')
+                classname = testcase.get('classname')
+                elapsedtime = float(testcase.get('time'))
 
                 # find the matching Spira test case id for this classname.name combination
                 fullname = classname + '.' + testname
