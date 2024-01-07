@@ -42,7 +42,7 @@ def getConfig(config_file):
                     config[key] = value
             elif section == "test_cases":
                 for (key, value) in parser.items(section):
-                    print("Config: added key='{}', value='{}'".format(key.lower(), value))
+                    # print("Config: added key='{}', value='{}'".format(key.lower(), value))
                     config["test_case_ids"][key.lower()] = value
     return config
 
@@ -211,7 +211,7 @@ class SpiraResultsParser():
         testsuites = xmlDoc.getroot()
 
         # iterate over the test suites 
-        for testsuite in testsuites.findall('./testsuite'):
+        for testsuite in testsuites.findall('.//testsuite'):
 
             # iterate over the test cases in the test suite 
             for testcase in testsuite.findall('./testcase'):
@@ -255,6 +255,13 @@ class SpiraResultsParser():
                     message = 'Success'
                     details = 'Nothing Reported\n'
 
+                    # See if we have a failure node
+                    failure = testcase.find('failure')
+                    if failure is not None:
+                        message = failure.get('message')
+                        details = failure.text
+                        execution_status_id = 1 # Fail
+
                     # Create new test result object
                     test_result = {
                         'test_case_id': test_case_id,
@@ -262,7 +269,7 @@ class SpiraResultsParser():
                         'execution_status_id': execution_status_id,
                         'stack_trace': details,
                         'message': message,
-                        'duration_seconds': elapsedtime * 1000
+                        'duration_seconds': elapsedtime
                     }
 
                     # Parse the test case ID, and append the result
