@@ -42,6 +42,7 @@ def getConfig(config_file):
                     config[key] = value
             elif section == "test_cases":
                 for (key, value) in parser.items(section):
+                    print("Config: added key='{}', value='{}'".format(key.lower(), value))
                     config["test_case_ids"][key.lower()] = value
     return config
 
@@ -149,7 +150,7 @@ class SpiraPostResults():
             print("Unable to report test results back to Spira since URL in configuration is empty")
 
         else:
-            print("Sending test results to Spira at URL '{}'.\n".format(self.config["url"]))
+            print("Sending test results to Spira at URL '{}'.".format(self.config["url"]))
             try:
                 # Loop through all the tests
                 success_count = 0
@@ -196,14 +197,18 @@ class SpiraResultsParser():
     def __init__(self, config_file='spira.cfg'):
         # Create an array to store the results we want to send to Spira
         self.test_results = []
+        self.config_file = config_file
 
     def parseResults(self, reportFile):
+        # Get the config
+        config = getConfig(config_file)
+
         # Open up the XML file
         # create element tree object 
         xmlDoc = ET.parse(reportFile) 
 
         # get root element 
-        testsuites = xmlDoc.getroot() 
+        testsuites = xmlDoc.getroot()
 
         # iterate over the test suites 
         for testsuite in testsuites.findall('./testsuite'):
@@ -219,17 +224,15 @@ class SpiraResultsParser():
                 # find the matching Spira test case id for this classname.name combination
                 fullname = classname + '.' + testname
                 test_case_id = -1
-                if fullname in config["test_case_ids"]:
-                    test_case_id = config["test_case_ids"][fullname]
-                else:
-                    test_case_id = config["test_case_ids"]["default"]
+                if fullname.lower() in config["test_case_ids"]:
+                    test_case_id = config["test_case_ids"][fullname.lower()]
                 
                 if test_case_id == -1:
                     print("Unable to find Spira id tag for test case '{}', so skipping this test case.".format(fullname))
 
                 else:
                     # Convert the test case status
-                    execution_status_id = 3 # Not Run
+                    execution_status_id = 2 # Passed
                     '''
                     if test.status == "PASS":
                         # 2 is passed
@@ -248,9 +251,9 @@ class SpiraResultsParser():
                         execution_status_id = 4
                     '''
 
-                    # Create the details and message
-                    message = test.message + ' (' + test.status + ')'
-                    details = 'Test Case: ' + test.longname + '\nDocumentation: ' + test.doc + '\nMessage: ' + message + '\n'
+                    # Create the details and message, default to success
+                    message = 'Success'
+                    details = 'Nothing Reported\n'
 
                     # Create new test result object
                     test_result = {
