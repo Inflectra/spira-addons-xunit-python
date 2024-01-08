@@ -24,9 +24,8 @@ def getConfig(config_file):
             "project_id": -1,
             "release_id": -1,
             "test_set_id": -1,
-            "test_case_ids": {
-                "default": -1
-            }
+            "test_case_ids": {},
+            "test_set_ids": {}
         }
         # Parse the config file
         parser = configparser.ConfigParser()
@@ -36,7 +35,7 @@ def getConfig(config_file):
 
         # Process Configs
         for section in sections:
-            # Handle credentials and test case mappings differently
+            # Handle credentials and test case / test set mappings differently
             if section == "credentials":
                 for (key, value) in parser.items(section):
                     config[key] = value
@@ -44,6 +43,10 @@ def getConfig(config_file):
                 for (key, value) in parser.items(section):
                     # print("Config: added key='{}', value='{}'".format(key.lower(), value))
                     config["test_case_ids"][key.lower()] = value
+            elif section == "test_sets":
+                for (key, value) in parser.items(section):
+                    # print("Config: added key='{}', value='{}'".format(key.lower(), value))
+                    config["test_set_ids"][key.lower()] = value
     return config
 
 
@@ -70,7 +73,7 @@ class SpiraTestRun:
     release_id = -1
     test_set_id = -1
 
-    def __init__(self, project_id, test_case_id, test_name, stack_trace, status_id, start_time, end_time, message='', release_id=-1, test_set_id=-1):
+    def __init__(self, project_id, test_case_id, test_name, stack_trace, status_id, start_time, end_time, message='', release_id=-1, test_set_id=-1, assert_count=0):
         self.project_id = project_id
         self.test_case_id = test_case_id
         self.test_name = test_name
@@ -81,6 +84,7 @@ class SpiraTestRun:
         self.message = message
         self.release_id = release_id
         self.test_set_id = test_set_id
+        self.assert_count = assert_count
 
     def post(self, spira_url, spira_username, spira_token):
         """
@@ -111,6 +115,7 @@ class SpiraTestRun:
             'RunnerTestName': self.test_name,
             'RunnerMessage': self.message,
             'RunnerStackTrace': self.stack_trace,
+            'RunnerAssertCount': self.assert_count,
             'TestCaseId': self.test_case_id,
             # Passes (2) if the stack trace length is 0
             'ExecutionStatusId': self.status_id
@@ -182,7 +187,8 @@ class SpiraPostResults():
                 current_time,
                 message=test_result["message"], 
                 release_id=config["release_id"], 
-                test_set_id=config["test_set_id"]
+                test_set_id=config["test_set_id"],
+                assert_count=test_result["assert_count"]
             )
             # Post the test run!
             is_error = test_run.post(config["url"], config["username"], config["token"])
@@ -231,6 +237,9 @@ class SpiraResultsParser():
                     print("Unable to find Spira id tag for test case '{}', so skipping this test case.".format(fullname))
 
                 else:
+                    # See if we have a matching test set ID, otherwise use the default one
+
+
                     # Convert the test case status
                     execution_status_id = 2 # Passed
                     '''
@@ -254,6 +263,7 @@ class SpiraResultsParser():
                     # Create the details and message, default to success
                     message = 'Success'
                     details = 'Nothing Reported\n'
+                    assertCount = 0
 
                     # See if we have a failure node
                     failure = testcase.find('failure')
@@ -261,6 +271,7 @@ class SpiraResultsParser():
                         message = failure.get('message')
                         details = failure.text
                         execution_status_id = 1 # Fail
+                        assertCount = 1
 
                     # Create new test result object
                     test_result = {
@@ -269,7 +280,8 @@ class SpiraResultsParser():
                         'execution_status_id': execution_status_id,
                         'stack_trace': details,
                         'message': message,
-                        'duration_seconds': elapsedtime
+                        'duration_seconds': elapsedtime,
+                        'assert_count' : assertCount
                     }
 
                     # Parse the test case ID, and append the result
