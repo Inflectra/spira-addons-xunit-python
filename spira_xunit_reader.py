@@ -24,6 +24,7 @@ def getConfig(config_file):
             "project_id": -1,
             "release_id": -1,
             "test_set_id": -1,
+            "create_build": False,
             "test_case_ids": {},
             "test_set_ids": {}
         }
@@ -38,7 +39,10 @@ def getConfig(config_file):
             # Handle credentials and test case / test set mappings differently
             if section == "credentials":
                 for (key, value) in parser.items(section):
-                    config[key] = value
+                    if key == 'create_build':
+                        config[key] = bool(value)
+                    else:
+                        config[key] = value
             elif section == "test_cases":
                 for (key, value) in parser.items(section):
                     # print("Config: added key='{}', value='{}'".format(key.lower(), value))
@@ -59,6 +63,7 @@ class SpiraTestRun:
     REST_SERVICE_URL = "/Services/v6_0/RestService.svc/"
     # The URL spippet used to post an automated test run. Needs the project ID to work
     POST_TEST_RUN = "projects/%s/test-runs/record"
+    POST_BUILD = "projects/{}/releases/{}/builds"
     '''
     A TestRun object model for Spira
     '''
@@ -73,7 +78,7 @@ class SpiraTestRun:
     release_id = -1
     test_set_id = -1
 
-    def __init__(self, project_id, test_case_id, test_name, stack_trace, status_id, start_time, end_time, message='', release_id=-1, test_set_id=-1, assert_count=0):
+    def __init__(self, project_id, test_case_id, test_name, stack_trace, status_id, start_time, end_time, message='', release_id=-1, test_set_id=-1, assert_count=0, create_build=False):
         self.project_id = project_id
         self.test_case_id = test_case_id
         self.test_name = test_name
@@ -85,6 +90,54 @@ class SpiraTestRun:
         self.release_id = release_id
         self.test_set_id = test_set_id
         self.assert_count = assert_count
+        self.create_build = create_build
+
+    def createBuild(self, spira_url, spira_username, spira_token, buildStatusId, buildName):
+        """
+        Create a new build in Spira with the given credentials for associating the test runs with
+        """
+        url = spira_url + self.REST_SERVICE_URL + \
+            (self.POST_BUILD.format(self.project_id, self.release_id))
+        # The credentials we need
+        params = {
+            'username': spira_username,
+            'api-key': spira_token
+        }
+
+        # The headers we are sending to the server
+        headers = {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': RUNNER_NAME
+        }
+
+        # The body we are sending
+        body = {
+            # 1=Failed, 2=Passed
+            'ProjectId': self.project_id,
+            'BuildStatusId': buildStatusId,
+            'ReleaseId': self.release_id,
+            'Name': buildName,            
+        }
+
+        dumps = json.dumps(body)
+        # print (dumps)
+
+        response = requests.post(url, data=json.dumps(
+            body), params=params, headers=headers)
+
+        if response.status_code == 404:
+            # Test Case Not Found
+            print ("Unable to find a matching Spira release of id RL:{}, so not able to post result".format(self.release_id))
+            return None
+        elif response.status_code == 200:
+            # OK
+            build = response.json()
+            return build['BuildId']
+        else:
+            # General Error
+            print ("Unable to create build due to HTTP error: {} ({})".format(response.reason, response.status_code))
+            return None
 
     def post(self, spira_url, spira_username, spira_token):
         """
@@ -124,10 +177,19 @@ class SpiraTestRun:
         # Releases and Test Sets are optional
         if(self.release_id != -1):
             body["ReleaseId"] = int(self.release_id)
+            # If we have a release, also see if we should create a build
+            if self.create_build == True:
+                buildStatusId = 2 # Passed
+                if self.assert_count > 0:
+                    buildStatusId = 1 # Failed
+                buildId = self.createBuild(spira_url, spira_username, spira_token, buildStatusId, 'Test Build')
+                body["BuildId"] = buildId
+
         if(self.test_set_id != -1):
             body["TestSetId"] = int(self.test_set_id)
 
         dumps = json.dumps(body)
+        # print (dumps)
 
         response = requests.post(url, data=json.dumps(
             body), params=params, headers=headers)
@@ -195,7 +257,8 @@ class SpiraPostResults():
                 message=test_result["message"], 
                 release_id=config["release_id"], 
                 test_set_id=test_set_id,
-                assert_count=test_result["assert_count"]
+                assert_count=test_result["assert_count"],
+                create_build=config["create_build"]
             )
             # Post the test run!
             is_error = test_run.post(config["url"], config["username"], config["token"])
