@@ -57,42 +57,29 @@ def getConfig(config_file):
 # Name of this extension
 RUNNER_NAME = "xUnit (Python)"
 
-
-class SpiraTestRun:
+class SpiraBuild:
     # The URL snippet used after the Spira URL
     REST_SERVICE_URL = "/Services/v6_0/RestService.svc/"
     # The URL spippet used to post an automated test run. Needs the project ID to work
-    POST_TEST_RUN = "projects/%s/test-runs/record"
     POST_BUILD = "projects/{}/releases/{}/builds"
+
     '''
-    A TestRun object model for Spira
+    A Build object model for Spira
     '''
     project_id = -1
-    test_case_id = -1
-    test_name = ""
-    stack_trace = ""
-    status_id = -1
-    start_time = -1
-    end_time = -1
-    message = ""
     release_id = -1
-    test_set_id = -1
+    build_status_id = -1
+    name = ""
+    description = ""
 
-    def __init__(self, project_id, test_case_id, test_name, stack_trace, status_id, start_time, end_time, message='', release_id=-1, test_set_id=-1, assert_count=0, create_build=False):
+    def __init__(self, project_id, release_id, build_status_id, name, description=""):
         self.project_id = project_id
-        self.test_case_id = test_case_id
-        self.test_name = test_name
-        self.stack_trace = stack_trace
-        self.status_id = status_id
-        self.start_time = start_time
-        self.end_time = end_time
-        self.message = message
         self.release_id = release_id
-        self.test_set_id = test_set_id
-        self.assert_count = assert_count
-        self.create_build = create_build
+        self.name = name
+        self.build_status_id = build_status_id
+        self.description = description
 
-    def createBuild(self, spira_url, spira_username, spira_token, buildStatusId, buildName):
+    def post(self, spira_url, spira_username, spira_token):
         """
         Create a new build in Spira with the given credentials for associating the test runs with
         """
@@ -115,9 +102,10 @@ class SpiraTestRun:
         body = {
             # 1=Failed, 2=Passed
             'ProjectId': self.project_id,
-            'BuildStatusId': buildStatusId,
+            'BuildStatusId': self.build_status_id,
             'ReleaseId': self.release_id,
-            'Name': buildName,            
+            'Name': self.name,
+            'Description': self.description            
         }
 
         dumps = json.dumps(body)
@@ -138,6 +126,42 @@ class SpiraTestRun:
             # General Error
             print ("Unable to create build due to HTTP error: {} ({})".format(response.reason, response.status_code))
             return None
+
+
+class SpiraTestRun:
+    # The URL snippet used after the Spira URL
+    REST_SERVICE_URL = "/Services/v6_0/RestService.svc/"
+    # The URL spippet used to post an automated test run. Needs the project ID to work
+    POST_TEST_RUN = "projects/%s/test-runs/record"
+    '''
+    A TestRun object model for Spira
+    '''
+    project_id = -1
+    test_case_id = -1
+    test_name = ""
+    stack_trace = ""
+    status_id = -1
+    start_time = -1
+    end_time = -1
+    message = ""
+    release_id = -1
+    test_set_id = -1
+    build_id = -1
+
+    def __init__(self, project_id, test_case_id, test_name, stack_trace, status_id, start_time, end_time, message='', release_id=-1, test_set_id=-1, assert_count=0, build_id=-1):
+        self.project_id = project_id
+        self.test_case_id = test_case_id
+        self.test_name = test_name
+        self.stack_trace = stack_trace
+        self.status_id = status_id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.message = message
+        self.release_id = release_id
+        self.test_set_id = test_set_id
+        self.assert_count = assert_count
+        self.build_id = build_id
+
 
     def post(self, spira_url, spira_username, spira_token):
         """
@@ -177,13 +201,9 @@ class SpiraTestRun:
         # Releases and Test Sets are optional
         if(self.release_id != -1):
             body["ReleaseId"] = int(self.release_id)
-            # If we have a release, also see if we should create a build
-            if self.create_build == True:
-                buildStatusId = 2 # Passed
-                if self.assert_count > 0:
-                    buildStatusId = 1 # Failed
-                buildId = self.createBuild(spira_url, spira_username, spira_token, buildStatusId, 'Test Build')
-                body["BuildId"] = buildId
+            # If we have a release, also see if we have a build
+            if self.build_id != -1:
+                body["BuildId"] = int(self.build_id)
 
         if(self.test_set_id != -1):
             body["TestSetId"] = int(self.test_set_id)
@@ -217,6 +237,16 @@ class SpiraPostResults():
             print("Unable to report test results back to Spira since URL in configuration is empty")
 
         else:
+            # See if we want to create a build
+            build_id = -1
+            if self.config["create_build"] == True:
+                print("Creating new build in Spira at URL '{}'.".format(self.config["url"]))
+                buildStatusId = 1
+                name = "Test Build"
+                description = ""
+                spiraBuild = SpiraBuild(config["project_id"], config["release_id"]. buildStatusId, name, description)
+                build_id = spiraBuild.post(config["url"], config["username"], config["token"])
+
             print("Sending test results to Spira at URL '{}'.".format(self.config["url"]))
             try:
                 # Loop through all the tests
@@ -226,7 +256,7 @@ class SpiraPostResults():
                     current_time = datetime.datetime.now(datetime.UTC)
 
                     # Send the result
-                    is_error = self.sendResult(test_result, current_time)
+                    is_error = self.sendResult(test_result, current_time, build_id)
                     if is_error == False:
                         success_count = success_count + 1
 
@@ -236,7 +266,7 @@ class SpiraPostResults():
             except Exception as exception:
                 print("Unable to report test cases to Spira due to error '{}'.\n".format(exception))
 
-    def sendResult(self, test_result, current_time):
+    def sendResult(self, test_result, current_time, build_id):
         try:
             # See if we have a test specific test set id to use, otherwise use the global one
             test_set_id = -1
@@ -258,7 +288,7 @@ class SpiraPostResults():
                 release_id=config["release_id"], 
                 test_set_id=test_set_id,
                 assert_count=test_result["assert_count"],
-                create_build=config["create_build"]
+                build_id=build_id
             )
             # Post the test run!
             is_error = test_run.post(config["url"], config["username"], config["token"])
