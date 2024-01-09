@@ -46,7 +46,7 @@ def getConfig(config_file):
             elif section == "test_sets":
                 for (key, value) in parser.items(section):
                     # print("Config: added key='{}', value='{}'".format(key.lower(), value))
-                    config["test_set_ids"][key.lower()] = value
+                    config["test_set_ids"][key.lower()] = int(value)
     return config
 
 
@@ -176,6 +176,13 @@ class SpiraPostResults():
 
     def sendResult(self, test_result, current_time):
         try:
+            # See if we have a test specific test set id to use, otherwise use the global one
+            test_set_id = -1
+            if test_result["test_set_id"] > 0:
+                test_set_id = test_result["test_set_id"]
+            else:
+                test_set_id = config["test_set_id"]
+
             # Create the Spira test run
             test_run = SpiraTestRun(
                 config["project_id"], 
@@ -187,7 +194,7 @@ class SpiraPostResults():
                 current_time,
                 message=test_result["message"], 
                 release_id=config["release_id"], 
-                test_set_id=config["test_set_id"],
+                test_set_id=test_set_id,
                 assert_count=test_result["assert_count"]
             )
             # Post the test run!
@@ -218,6 +225,8 @@ class SpiraResultsParser():
 
         # iterate over the test suites 
         for testsuite in testsuites.findall('.//testsuite'):
+            # get the test suite name
+            suitename = testsuite.get('name')
 
             # iterate over the test cases in the test suite 
             for testcase in testsuite.findall('./testcase'):
@@ -238,6 +247,9 @@ class SpiraResultsParser():
 
                 else:
                     # See if we have a matching test set ID, otherwise use the default one
+                    test_set_id = -1
+                    if suitename.lower() in config["test_set_ids"]:
+                        test_set_id = config["test_set_ids"][suitename.lower()]
 
 
                     # Convert the test case status
@@ -281,7 +293,8 @@ class SpiraResultsParser():
                         'stack_trace': details,
                         'message': message,
                         'duration_seconds': elapsedtime,
-                        'assert_count' : assertCount
+                        'assert_count' : assertCount,
+                        'test_set_id': test_set_id
                     }
 
                     # Parse the test case ID, and append the result
