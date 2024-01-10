@@ -231,7 +231,7 @@ class SpiraPostResults():
         # Get the configuration information
         self.config = getConfig(config_file)
 
-    def sendResults(self, test_results):
+    def sendResults(self, test_results, testsuites):
         # Only do stuff if config is specified
         if self.config["url"] == "":
             print("Unable to report test results back to Spira since URL in configuration is empty")
@@ -241,11 +241,41 @@ class SpiraPostResults():
             build_id = -1
             if self.config["create_build"] == True:
                 print("Creating new build in Spira at URL '{}'.".format(self.config["url"]))
-                buildStatusId = 1
-                name = "Test Build"
+
+                # See if we have any test failures, if so, mark build as failed
+                buildStatusId = 2 # Passed
+                for test_result in test_results:
+                    if test_result["execution_status_id"] == 1:
+                        buildStatusId = 1 # Failed    
+
+                # Create the default build name, and description
+                current_time = datetime.datetime.now(datetime.UTC)
+                name = RUNNER_NAME + " Build " + current_time.isoformat()
                 description = ""
-                spiraBuild = SpiraBuild(config["project_id"], config["release_id"]. buildStatusId, name, description)
-                build_id = spiraBuild.post(config["url"], config["username"], config["token"])
+
+                # See if the testsuites root node has any relevant metadata
+                suites_name = testsuites.get('name')
+                suites_tests = testsuites.get('tests')
+                suites_failures = testsuites.get('failures')
+                suites_errors = testsuites.get('errors')
+                suites_skipped = testsuites.get('skipped')
+                suites_assertions = testsuites.get('assertions')
+                if suites_name is not None and suites_name != '':
+                    name = suites_name + " Build " + current_time.isoformat()
+                if suites_tests is not None and suites_tests != '':
+                    description = description + '# Tests: {}\n'.format(suites_tests)
+                if suites_failures is not None and suites_failures != '':
+                    description = description + '# Failures: {}\n'.format(suites_failures)
+                if suites_errors is not None and suites_errors != '':
+                    description = description + '# Errors: {}\n'.format(suites_errors)
+                if suites_skipped is not None and suites_skipped != '':
+                    description = description + '# Skipped: {}\n'.format(suites_skipped)
+                if suites_assertions is not None and suites_assertions != '':
+                    description = description + '# Assertions: {}\n'.format(suites_assertions)
+
+                # Create the build and get its id
+                spiraBuild = SpiraBuild(self.config["project_id"], self.config["release_id"], buildStatusId, name, description)
+                build_id = spiraBuild.post(self.config["url"], self.config["username"], self.config["token"])
 
             print("Sending test results to Spira at URL '{}'.".format(self.config["url"]))
             try:
@@ -395,7 +425,7 @@ class SpiraResultsParser():
 
         # Send the results to Spira
         spira_results = SpiraPostResults(config_file)
-        spira_results.sendResults(self.test_results)
+        spira_results.sendResults(self.test_results, testsuites)
                 
 if __name__ == '__main__':
     # Get the command arguments, if there are any

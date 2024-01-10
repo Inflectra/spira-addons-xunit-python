@@ -4,3 +4,7 @@ This repository contains the source code for the Spira add-on that lets you read
 # Examples
 `python spira_xunit_reader.py samples\junit-basic.xml spira.cfg`
 
+and
+
+`python spira_xunit_reader.py samples\junit-complete.xml spira.cfg`
+
