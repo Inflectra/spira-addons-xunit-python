@@ -35,7 +35,7 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
     -->
     <testsuite name="LIS.Registration" tests="8" failures="1" errors="1" skipped="1"
         assertions="20" time="16.082687" timestamp="2021-04-02T15:48:23"
-        file="tests/registration.code">
+        file="tests/registration.cs">
 
         <!-- <properties> Test suites (and test cases, see below) can have additional
         properties such as environment variables or version numbers. -->
@@ -72,15 +72,15 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
         line        Source code line number of the start of this test case
         -->
         <testcase name="registration1" classname="LIS.Registration" assertions="2"
-            time="2.436" file="tests/registration.code" line="24" />
+            time="2.436" file="tests/registration.cs" line="24" />
         <testcase name="registration2" classname="LIS.Registration" assertions="6"
-            time="1.534" file="tests/registration.code" line="62" />
+            time="1.534" file="tests/registration.cs" line="62" />
         <testcase name="registration3" classname="LIS.Registration" assertions="3"
-            time="0.822" file="tests/registration.code" line="102" />
+            time="0.822" file="tests/registration.cs" line="102" />
 
         <!-- Example of a test case that was skipped -->
         <testcase name="registration4" classname="LIS.Registration" assertions="0"
-            time="0" file="tests/registration.code" line="164">
+            time="0" file="tests/registration.cs" line="164">
             <!-- <skipped> Indicates that the test was not executed. Can have an optional
             message describing why the test was skipped. -->
             <skipped message="Test was skipped." />
@@ -88,29 +88,32 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
 
         <!-- Example of a test case that failed. -->
         <testcase name="registration5" classname="LIS.Registration" assertions="2"
-            time="2.902412" file="tests/registration.code" line="202">
+            time="2.902412" file="tests/registration.cs" line="202">
             <!-- <failure> The test failed because one of the assertions/checks failed.
             Can have a message and failure type, often the assertion type or class. The text
             content of the element often includes the failure description or stack trace. -->
             <failure message="Expected value did not match." type="AssertionError">
-                <!-- Failure description or stack trace -->
+                Resource: Login Page
+                File: /Login.aspx
+                URL: https://www.libraryinformationsystem.org
+                Expected 'librarian', found 'borrower'
             </failure>
         </testcase>
 
         <!-- Example of a test case that had errors. -->
         <testcase name="registration6" classname="LIS.Registration" assertions="0"
-            time="3.819" file="tests/registration.code" line="235">
+            time="3.819" file="tests/registration.cs" line="235">
             <!-- <error> The test had an unexpected error during execution. Can have a
             message and error type, often the exception type or class. The text
             content of the element often includes the error description or stack trace. -->
             <error message="Division by zero." type="ArithmeticError">
-                <!-- Error description or stack trace -->
+                15. var x = total / count;
             </error>
         </testcase>
 
         <!-- Example of a test case with outputs. -->
         <testcase name="registration7" classname="LIS.Registration" assertions="3"
-            time="2.944" file="tests/registration.code" line="287">
+            time="2.944" file="tests/registration.cs" line="287">
             <!-- <system-out> Optional data written to standard out for the test case. -->
             <system-out>Data written to standard out.</system-out>
 
@@ -120,7 +123,7 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
 
         <!-- Example of a test case with properties and attachments -->
         <testcase name="registration8" classname="LIS.Registration" assertions="4"
-            time="1.625275" file="tests/registration.code" line="302">
+            time="1.625275" file="tests/registration.cs" line="302">
             <!-- <properties> Some tools also support properties for test cases. -->
             <properties>
                 <property name="priority" value="2 - High" />

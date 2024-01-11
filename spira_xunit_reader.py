@@ -377,23 +377,6 @@ class SpiraResultsParser():
 
                     # Convert the test case status
                     execution_status_id = 2 # Passed
-                    '''
-                    if test.status == "PASS":
-                        # 2 is passed
-                        execution_status_id = 2
-                    elif test.status == "SKIP":
-                        # 4 is n/a
-                        execution_status_id = 4
-                    elif test.status == "FAIL":
-                        #1 is failed
-                        execution_status_id = 1
-                    elif test.status == "NOT RUN":
-                        #5 is blocked
-                        execution_status_id = 5
-                    elif test.status == "NOT SET":
-                        #1 is n/a
-                        execution_status_id = 4
-                    '''
 
                     # Create the details and message, default to success
                     message = 'Success'
@@ -407,6 +390,52 @@ class SpiraResultsParser():
                         details = failure.text
                         execution_status_id = 1 # Fail
                         assertCount = 1
+
+                    # See if we have a warning node
+                    warning = testcase.find('warning')
+                    if warning is not None:
+                        message = warning.get('message')
+                        details = warning.text
+                        execution_status_id = 6 # Warning
+                        assertCount = 1
+
+                    # See if we have a error node
+                    error = testcase.find('error')
+                    if error is not None:
+                        message = error.get('message')
+                        details = error.text
+                        execution_status_id = 5 # Blocked
+                        assertCount = 1
+
+                    # See if we have a skipped node
+                    skipped = testcase.find('skipped')
+                    if skipped is not None:
+                        message = skipped.get('message')
+                        details = skipped.text
+                        execution_status_id = 4 # N/A
+                        assertCount = 1
+
+                    # See if we have assertions attribute
+                    testcase_assertions = testcase.get('assertions')
+                    if testcase_assertions is not None and testcase_assertions != '':
+                        assertCount = int(testcase_assertions)
+
+                    # See if we have any stdout or stderr to capture
+                    systemOut = testcase.find('system-out')
+                    if systemOut is not None:
+                        details = details + 'System Out: ' + systemOut.text + '\n'
+                        
+                    systemErr = testcase.find('system-err')
+                    if systemErr is not None:
+                        details = details + 'System Err: ' + systemErr.text + '\n'
+
+                    # See if we have any properties
+                    for property in testcase.findall('./properties/property'):
+                        propName = property.get('name')
+                        propValue = property.get('value')
+                        if property.text is not None and property.text != '':
+                            propValue = property.text
+                        details = details + '- {}={}\n'.format(propName, propValue)
 
                     # Create new test result object
                     test_result = {
