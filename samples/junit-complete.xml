@@ -86,7 +86,7 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
             <skipped message="Test was skipped." />
         </testcase>
 
-        <!-- Example of a test case that failed. -->
+        <!-- Example of a test case that failed with different types of attachment. -->
         <testcase name="registration5" classname="LIS.Registration" assertions="2"
             time="2.902412" file="tests/registration.cs" line="202">
             <!-- <failure> The test failed because one of the assertions/checks failed.
@@ -98,6 +98,12 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
                 URL: https://www.libraryinformationsystem.org
                 Expected 'librarian', found 'borrower'
             </failure>
+            <properties>
+                <property name="attachment" value="screenshots/home.png" />
+                <property name="attachment" value="screenshots/login.png" />
+                <property name="attachment1" value="https://github.com/Inflectra/spira-addons-xunit-python/samples/screenshots/home.png" />
+                <property name="attachment2" value="https://github.com/Inflectra/spira-addons-xunit-python/samples/screenshots/login.png" />
+            </properties>
         </testcase>
 
         <!-- Example of a test case that had errors. -->
@@ -115,10 +121,16 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
         <testcase name="registration7" classname="LIS.Registration" assertions="3"
             time="2.944" file="tests/registration.cs" line="287">
             <!-- <system-out> Optional data written to standard out for the test case. -->
-            <system-out>Data written to standard out.</system-out>
+            <system-out>
+                Data written to standard out.
+            </system-out>
 
-            <!-- <system-err> Optional data written to standard error for the test case. -->
-            <system-err>Data written to standard error.</system-err>
+            <!-- <system-err> Optional data written to standard error for the test case, including attachments. -->
+            <system-err>
+                Data written to standard error.
+                [[ATTACHMENT|screenshots/home.png]]
+                [[ATTACHMENT|screenshots/login.png]]
+            </system-err>
         </testcase>
 
         <!-- Example of a test case with properties and attachments -->
