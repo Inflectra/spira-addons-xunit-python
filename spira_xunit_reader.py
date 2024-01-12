@@ -57,10 +57,87 @@ def getConfig(config_file):
 # Name of this extension
 RUNNER_NAME = "xUnit (Python)"
 
+class SpiraDocument:
+    # The URL snippet used after the Spira URL
+    REST_SERVICE_URL = "/Services/v6_0/RestService.svc/"
+    # The URL spippet used to post a new file or URL attachment linked to a test run
+    POST_DOCUMENT_FILE = "projects/{}/documents/file"
+    POST_DOCUMENT_URL = "projects/{}/documents/url"
+
+    '''
+    A Document object model for Spira
+    '''
+    project_id = -1
+    attachment_type_id = -1
+    test_run_id = -1
+    filename_or_url = ""
+    version_name = ""
+
+    def __init__(self, project_id, attachment_type_id, test_run_id, filename_or_url, version_name):
+        self.project_id = project_id
+        self.attachment_type_id = attachment_type_id
+        self.test_run_id = test_run_id
+        self.filename_or_url = filename_or_url
+        self.version_name = version_name
+
+    def post(self, spira_url, spira_username, spira_token, binary_data=None):
+        """
+        Create a new attachment in Spira with the given credentials for associating the test runs with
+        """
+        # Default to URL attachment
+        url = spira_url + self.REST_SERVICE_URL + self.POST_DOCUMENT_URL.format(self.project_id)
+        if self.attachment_type_id == 1 and binary_data is not None:
+            # We have a file attachment
+            url = spira_url + self.REST_SERVICE_URL + self.POST_DOCUMENT_FILE.format(self.project_id)
+
+        # The credentials we need
+        params = {
+            'username': spira_username,
+            'api-key': spira_token
+        }
+
+        # The headers we are sending to the server
+        headers = {
+            'accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': RUNNER_NAME
+        }
+
+        # The body we are sending
+        body = {
+            'ProjectId': self.project_id,
+            'AttachmentTypeId': self.attachment_type_id,
+            'FilenameOrUrl': self.filename_or_url,
+            'CurrentVersion': self.version_name,
+            'AttachedArtifacts': [{
+                'ArtifactId': self.test_run_id,
+                'ArtifactTypeId': 5 # Test Run
+            }]
+        }
+
+        dumps = json.dumps(body)
+        # print (dumps)
+
+        response = requests.post(url, data=json.dumps(body), params=params, headers=headers)
+
+        if response.status_code == 404:
+            # Test Case Not Found
+            print ("Unable to find a matching Spira test run of id TR:{}, so not able to post result".format(self.test_run_id))
+            return None
+        elif response.status_code == 200:
+            # OK
+            document = response.json()
+            return document['AttachmentId']
+        else:
+            # General Error
+            print ("Unable to create document due to HTTP error: {} ({})".format(response.reason, response.status_code))
+            return None
+        
+
 class SpiraBuild:
     # The URL snippet used after the Spira URL
     REST_SERVICE_URL = "/Services/v6_0/RestService.svc/"
-    # The URL spippet used to post an automated test run. Needs the project ID to work
+    # The URL spippet used to post a build. Needs the project ID and release ID to work
     POST_BUILD = "projects/{}/releases/{}/builds"
 
     '''
