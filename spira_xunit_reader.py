@@ -117,6 +117,10 @@ class SpiraDocument:
             }]
         }
 
+        # Add the binary data if appropriate
+        if self.attachment_type_id == 1:
+            body['BinaryData'] = binary_data
+
         dumps = json.dumps(body)
         # print (dumps)
 
