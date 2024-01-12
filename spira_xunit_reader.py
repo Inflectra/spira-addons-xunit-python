@@ -6,6 +6,7 @@ import time
 import configparser
 import xml.etree.ElementTree as ET
 import sys
+import base64
 
 '''
 The config is only retrieved once
@@ -294,14 +295,16 @@ class SpiraTestRun:
         if response.status_code == 404:
             # Test Case Not Found
             print ("Unable to find a matching Spira test case of id TC:{}, so not able to post result".format(self.test_case_id))
-            return True
+            return -1
         elif response.status_code == 200:
             # OK
-            return False
+            testRun = response.json()
+            testRunId = testRun['TestRunId']
+            return testRunId
         else:
             # General Error
             print ("Unable to send results due to HTTP error: {} ({})".format(response.reason, response.status_code))
-            return True
+            return -1
         
 class SpiraPostResults():
     def __init__(self, config_file):
@@ -397,8 +400,24 @@ class SpiraPostResults():
                 assert_count=test_result["assert_count"],
                 build_id=build_id
             )
+
             # Post the test run!
-            is_error = test_run.post(config["url"], config["username"], config["token"])
+            testRunId = test_run.post(config["url"], config["username"], config["token"])
+            is_error = (testRunId < 1)
+
+            if is_error == False:
+                # See if we have any file attachments to include
+                if test_result["attachments"] is not None:
+                    for attachment in test_result["attachments"]:
+                        spiraDocument = SpiraDocument(config["project_id"], 1, testRunId, attachment['filename'], '1.0')
+                        spiraDocument.post(config["url"], config["username"], config["token"], attachment['binary_data'])
+
+                # See if we have any url attachments to include
+                if test_result["links"] is not None:
+                    for link in test_result["links"]:
+                        spiraDocument = SpiraDocument(config["project_id"], 2, testRunId, link['url'], '1.0')
+                        spiraDocument.post(config["url"], config["username"], config["token"])
+
             return is_error
 
         except Exception as exception:
@@ -506,13 +525,38 @@ class SpiraResultsParser():
                     if systemErr is not None:
                         details = details + 'System Err: ' + systemErr.text + '\n'
 
-                    # See if we have any properties
+                    # See if we have any properties, also see if any are attachments or links
+                    attachments = []
+                    links = []
                     for property in testcase.findall('./properties/property'):
                         propName = property.get('name')
                         propValue = property.get('value')
                         if property.text is not None and property.text != '':
                             propValue = property.text
                         details = details + '- {}={}\n'.format(propName, propValue)
+
+                        # See if an attachment
+                        if propName.startswith('attachment'):
+                            if propValue.startswith('http'):
+                                link = {
+                                    'url': propValue
+                                }
+                                links.append(link)
+                            else:
+                                # Open the image file
+                                try:
+                                    image_file= open(propValue)
+                                    image_data_binary = image_file.read()
+                                    image_data = (base64.b64encode(image_data_binary)).decode('ascii')
+                                    attachment = {
+                                        'filename': propValue,
+                                        'binary_data': image_data
+                                    }
+                                    attachments.append(attachment)
+                                except Exception as exception:
+                                    print("Unable to read image file '{}' due to error '{}', so skipping attachment.\n".format(propValue, exception))
+                                    return True
+
 
                     # Create new test result object
                     test_result = {
@@ -523,7 +567,9 @@ class SpiraResultsParser():
                         'message': message,
                         'duration_seconds': elapsedtime,
                         'assert_count' : assertCount,
-                        'test_set_id': test_set_id
+                        'test_set_id': test_set_id,
+                        'attachments': attachments,
+                        'links': links
                     }
 
                     # Parse the test case ID, and append the result
