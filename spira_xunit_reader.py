@@ -7,6 +7,7 @@ import configparser
 import xml.etree.ElementTree as ET
 import sys
 import base64
+import os
 
 '''
 The config is only retrieved once
@@ -545,7 +546,9 @@ class SpiraResultsParser():
                             else:
                                 # Open the image file
                                 try:
-                                    image_file= open(propValue)
+                                    report_folder = os.path.dirname(reportFile)
+                                    filename = os.path.join(report_folder, propValue)
+                                    image_file= open(filename, 'rb')
                                     image_data_binary = image_file.read()
                                     image_data = (base64.b64encode(image_data_binary)).decode('ascii')
                                     attachment = {
@@ -554,7 +557,7 @@ class SpiraResultsParser():
                                     }
                                     attachments.append(attachment)
                                 except Exception as exception:
-                                    print("Unable to read image file '{}' due to error '{}', so skipping attachment.\n".format(propValue, exception))
+                                    print("Unable to read image file '{}' due to error '{}', so skipping attachment.\n".format(filename, exception))
                                     return True
 
 

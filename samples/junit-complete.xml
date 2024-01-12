@@ -101,8 +101,8 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
             <properties>
                 <property name="attachment" value="screenshots/home.png" />
                 <property name="attachment" value="screenshots/login.png" />
-                <property name="attachment1" value="https://github.com/Inflectra/spira-addons-xunit-python/samples/screenshots/home.png" />
-                <property name="attachment2" value="https://github.com/Inflectra/spira-addons-xunit-python/samples/screenshots/login.png" />
+                <property name="attachment1" value="https://github.com/Inflectra/spira-addons-xunit-python/tree/main/samples/screenshots/home.png" />
+                <property name="attachment2" value="https://github.com/Inflectra/spira-addons-xunit-python/tree/main/samples/screenshots/login.png" />
             </properties>
         </testcase>
 
@@ -141,8 +141,8 @@ timestamp   Date and time of when the test run was executed (in ISO 8601 format)
                 <property name="priority" value="2 - High" />
                 <property name="language" value="en-US" />
                 <property name="author" value="Fred Bloggs" />
+                <property name="attachment" value="screenshots/home.png" />
                 <property name="attachment" value="screenshots/login.png" />
-                <property name="attachment" value="screenshots/message.png" />
                 <property name="description">
                     This text describes the purpose of this test case and provides
                     an overview of what the test does and how it works.
