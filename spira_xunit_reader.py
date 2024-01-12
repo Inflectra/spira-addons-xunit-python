@@ -431,10 +431,28 @@ class SpiraPostResults():
 
 
 class SpiraResultsParser():
+    REGEX_ATTACHMENT_PATH = '\\[\\[ATTACHMENT\\|([a-zA-Z0-9_\\/\\\\\\.]+)\\]\\]'
+
     def __init__(self, config_file='spira.cfg'):
         # Create an array to store the results we want to send to Spira
         self.test_results = []
         self.config_file = config_file
+
+    def readAttachmentFile(self,reportFile, filepath, attachments):
+        # Open the image file
+        try:
+            report_folder = os.path.dirname(reportFile)
+            filename = os.path.join(report_folder, filepath)
+            image_file= open(filename, 'rb')
+            image_data_binary = image_file.read()
+            image_data = (base64.b64encode(image_data_binary)).decode('ascii')
+            attachment = {
+                'filename': filepath,
+                'binary_data': image_data
+            }
+            attachments.append(attachment)
+        except Exception as exception:
+            print("Unable to read image file '{}' due to error '{}', so skipping attachment.\n".format(filename, exception))
 
     def parseResults(self, reportFile):
         # Get the config
@@ -522,16 +540,33 @@ class SpiraResultsParser():
                         assertCount = int(testcase_assertions)
 
                     # See if we have any stdout or stderr to capture
+                    attachments = []
                     systemOut = testcase.find('system-out')
                     if systemOut is not None:
                         details = details + 'System Out: ' + systemOut.text + '\n'
+
+                        # See if we have any attachments
+                        matches = re.finditer(self.REGEX_ATTACHMENT_PATH, systemOut.text)
+                        for match in matches:
+                            if match.lastindex == 1:
+                                filepath = match.group(1)
+                                # Open the image file
+                                self.readAttachmentFile(reportFile, filepath, attachments)
+
                         
                     systemErr = testcase.find('system-err')
                     if systemErr is not None:
                         details = details + 'System Err: ' + systemErr.text + '\n'
 
+                        # See if we have any attachments
+                        matches = re.finditer(self.REGEX_ATTACHMENT_PATH, systemErr.text)
+                        for match in matches:
+                            if match.lastindex == 1:
+                                filepath = match.group(1)
+                                # Open the image file
+                                self.readAttachmentFile(reportFile, filepath, attachments)
+
                     # See if we have any properties, also see if any are attachments or links
-                    attachments = []
                     links = []
                     for property in testcase.findall('./properties/property'):
                         propName = property.get('name')
@@ -549,21 +584,7 @@ class SpiraResultsParser():
                                 links.append(link)
                             else:
                                 # Open the image file
-                                try:
-                                    report_folder = os.path.dirname(reportFile)
-                                    filename = os.path.join(report_folder, propValue)
-                                    image_file= open(filename, 'rb')
-                                    image_data_binary = image_file.read()
-                                    image_data = (base64.b64encode(image_data_binary)).decode('ascii')
-                                    attachment = {
-                                        'filename': propValue,
-                                        'binary_data': image_data
-                                    }
-                                    attachments.append(attachment)
-                                except Exception as exception:
-                                    print("Unable to read image file '{}' due to error '{}', so skipping attachment.\n".format(filename, exception))
-                                    return True
-
+                                self.readAttachmentFile(reportFile, propValue, attachments)
 
                     # Create new test result object
                     test_result = {
