@@ -133,17 +133,19 @@ If there are any errors or warnings, they will be displayed instead.
 ### Viewing the Results
 Finally, to view the results in Spira, you can go to the **Test Runs** tab to see the list of test runs:
 
-![List of xUnit test runs in Spira](images/robot-framework-test-runs.png)
+![List of xUnit test runs in Spira](img/xunit_spira_test_runs.png)
 
-If you click on one of the **passed** test runs, it will display the name of the test case from Robot Framework, together with the status (pass), the test set, release and actual duration:
+If you click on one of the **passed** test runs, it will display the name of the test case from the xUnit XML file, together with the status (pass), the test set, release and actual duration:
 
-![A sample passed xUnit test run as it looks in Spira](images/robot-framework-passed-test-run-1.png)
+![A sample passed xUnit test run as it looks in Spira](img/xunit_spira_test_run_passed1.png)
 
-If you scroll down to the **Console Output** section, it displays the full name and path of the Robot Framework test case as well as the contents of the **Documentation** attribute and any messages.
+If you scroll down to the **Console Output** section, it displays the full name and path of the xUnit test case as well as the contents of any **properties**, **standard output** or **standard error** streams.
 
-![A sample passed xUnit test run as it looks in Spira](images/robot-framework-passed-test-run-2.png)
+In this example we have several screenshots attached as well:
 
-If you click on one of the **failed** test runs, it will display the name of the test case from Robot Framework, together with the status (fail), the test set, release and actual duration:
+![A sample passed xUnit test run's screenshots in Spira](img/xunit_spira_test_run_passed2.png)
+
+If you click on one of the **failed** test runs, it will display the name of the test case from the xUnit XML file, together with the status (fail), the test set, release and actual duration:
 
 ![A sample failed xUnit test run as it looks in Spira](images/robot-framework-failed-test-run-1.png)
 
