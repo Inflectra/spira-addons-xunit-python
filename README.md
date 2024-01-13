@@ -89,6 +89,20 @@ test run with a release.
 test run with a default test set.
 - **create_build** -- Set to true if you would like the plugin to create a new Spira build artifact with every run that all the individual test case runs get associated with.
 
+### Mapping The Test Cases
+
+This section is required, and is where you map the `classname.name` of the test case in the xUnit XML file to the appropriate test case in Spira. For details of which attribute is needed from the XML file, please refer to the sample XML files included at the end of this file.
+
+- `classname.name` - Used to map the combination of the test case's classname and name to the corresponding **test case ID** in Spira. The ID in Spira should be the test case id `TC:xxx` without the **TC** prefix. 
+
+### Mapping The Test Sets \[Optional\]
+
+This section is optional, and is used when you want the different **test suites** in the XML file to map to different **test sets** in Spira. If you don't complete this section, all of the test results will be associated with the **test_set_id** specified in the main configuration section.
+
+In this section you map the `name` of the test suite in the xUnit XML file to the appropriate test set in Spira. For details of which attribute is needed from the XML file, please refer to the sample XML files included at the end of this file.
+
+- `name` - Used to map the test set's name to the corresponding **test set ID** in Spira. The ID in Spira should be the test set id `TX:xxx` without the **TX** prefix. 
+
 ### Executing the Tests
 Now you are ready to execute your tests and send the results back so Spira. This happens in two steps:
 - Execute the unit tests and generate the `output.xml` xUnit style report file
@@ -119,23 +133,23 @@ If there are any errors or warnings, they will be displayed instead.
 ### Viewing the Results
 Finally, to view the results in Spira, you can go to the **Test Runs** tab to see the list of test runs:
 
-![List of Robot Framework test runs in Spira](images/robot-framework-test-runs.png)
+![List of xUnit test runs in Spira](images/robot-framework-test-runs.png)
 
 If you click on one of the **passed** test runs, it will display the name of the test case from Robot Framework, together with the status (pass), the test set, release and actual duration:
 
-![A sample passed Robot test run as it looks in Spira](images/robot-framework-passed-test-run-1.png)
+![A sample passed xUnit test run as it looks in Spira](images/robot-framework-passed-test-run-1.png)
 
 If you scroll down to the **Console Output** section, it displays the full name and path of the Robot Framework test case as well as the contents of the **Documentation** attribute and any messages.
 
-![A sample passed Robot test run as it looks in Spira](images/robot-framework-passed-test-run-2.png)
+![A sample passed xUnit test run as it looks in Spira](images/robot-framework-passed-test-run-2.png)
 
 If you click on one of the **failed** test runs, it will display the name of the test case from Robot Framework, together with the status (fail), the test set, release and actual duration:
 
-![A sample failed Robot test run as it looks in Spira](images/robot-framework-failed-test-run-1.png)
+![A sample failed xUnit test run as it looks in Spira](images/robot-framework-failed-test-run-1.png)
 
 If you scroll down to the **Console Output** section, it displays the full name and path of the Robot Framework test case as well as the contents of the **Documentation** attribute and in this case, the details of what caused the test to fail:
 
-![A sample failed Robot test run as it looks in Spira](images/robot-framework-failed-test-run-2.png)
+![A sample failed xUnit test run as it looks in Spira](images/robot-framework-failed-test-run-2.png)
 
 Congratulations, you have now executed your xUnit framework tests and integrated the reporting with Spira.
 
@@ -147,10 +161,202 @@ If you are an Inflectra customer, please contact our customer support at:
 Otherwise, please feel free to post a question on our public forums:
 - [Test Case Integration Forum](https://www.inflectra.com/Support/Forum/integrations/unit-testing/List.aspx)
 
-# Examples
-`python spira_xunit_reader.py samples\junit-basic.xml spira.cfg`
+# Sample xUnit XML Files
 
-and
+The following two samples are provided with this plugin:
 
-`python spira_xunit_reader.py samples\junit-complete.xml spira.cfg`
+- `junit-basic.xml`
+- `junit-complete.xml`
 
+## Basic Sample `junit-basic.xml`
+This is a minimalistic jUnit style example that contains several test cases nested in test suites with one test failure. It uses only the minimum set of attributes:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This is a basic JUnit-style XML example to highlight the basic structure.
+-->
+<testsuites time="15.682687">
+    <testsuite name="LIS.Registration" time="6.605871">
+        <testcase name="registration1" classname="LIS.Registration" time="2.113871" />
+        <testcase name="registration2" classname="LIS.Registration" time="1.051" />
+        <testcase name="registration3" classname="LIS.Registration" time="3.441" />
+    </testsuite>
+    <testsuite name="LIS.Authentication" time="9.076816">
+        <testsuite name="LIS.Authentication.Login" time="4.356">
+            <testcase name="login1" classname="LIS.Authentication.Login" time="2.244" />
+            <testcase name="login2" classname="LIS.Authentication.Login" time="0.781" />
+            <testcase name="login3" classname="LIS.Authentication.Login" time="1.331" />
+        </testsuite>
+        <testcase name="auth1" classname="LIS.Authentication" time="2.508" />
+        <testcase name="auth2" classname="LIS.Authentication" time="1.230816" />
+        <testcase name="auth3" classname="LIS.Authentication" time="0.982">
+            <failure message="Assertion error message" type="AssertionError">
+                Resource: Login Page
+                File: /Login.aspx
+                URL: https://www.libraryinformationsystem.org
+                Login failed with error message: XYZ
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>
+```
+
+## Complete Sample `junit-complete.xml`
+this is a more advanced, complete example that includes file attachments, URL attachments, errors, warnings, failures and additional optional xUnit attributes such as assertions, properties and standard error/output streams.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This is a JUnit-style XML example with commonly used tags and attributes.
+-->
+
+<!-- <testsuites> Usually the root element of a JUnit XML file. Some tools leave out
+the <testsuites> element if there is only a single top-level <testsuite> element (which
+is then used as the root element).
+
+name        Name of the entire test run
+tests       Total number of tests in this file
+failures    Total number of failed tests in this file
+errors      Total number of errored tests in this file
+skipped     Total number of skipped tests in this file
+assertions  Total number of assertions for all tests in this file
+time        Aggregated time of all tests in this file in seconds
+timestamp   Date and time of when the test run was executed (in ISO 8601 format)
+-->
+<testsuites name="Library Information System (LIS)" tests="8" failures="1" errors="1" skipped="1"
+    assertions="20" time="16.082687" timestamp="2021-04-02T15:48:23">
+
+    <!-- <testsuite> A test suite usually represents a class, folder or group of tests.
+    There can be many test suites in an XML file, and there can be test suites under other
+    test suites.
+
+    name        Name of the test suite (e.g. class name or folder name)
+    tests       Total number of tests in this suite
+    failures    Total number of failed tests in this suite
+    errors      Total number of errored tests in this suite
+    skipped     Total number of skipped tests in this suite
+    assertions  Total number of assertions for all tests in this suite
+    time        Aggregated time of all tests in this file in seconds
+    timestamp   Date and time of when the test suite was executed (in ISO 8601 format)
+    file        Source code file of this test suite
+    -->
+    <testsuite name="LIS.Registration" tests="8" failures="1" errors="1" skipped="1"
+        assertions="20" time="16.082687" timestamp="2021-04-02T15:48:23"
+        file="tests/registration.cs">
+
+        <!-- <properties> Test suites (and test cases, see below) can have additional
+        properties such as environment variables or version numbers. -->
+        <properties>
+            <!-- <property> Each property has a name and value. Some tools also support
+            properties with text values instead of value attributes. -->
+            <property name="version" value="1.774" />
+            <property name="commit" value="d205f50f6463cf4e684b6f81411a859346580fa5" />
+            <property name="browser" value="Google Chrome" />
+            <property name="ci" value="https://github.com/actions/runs/1234" />
+            <property name="config">
+                Config line #1
+                Config line #2
+                Config line #3
+            </property>
+        </properties>
+
+        <!-- <system-out> Optionally data written to standard out for the suite.
+        Also supported on a test case level, see below. -->
+        <system-out>Data written to standard out.</system-out>
+
+        <!-- <system-err> Optionally data written to standard error for the suite.
+        Also supported on a test case level, see below. -->
+        <system-err>Data written to standard error.</system-err>
+
+        <!-- <testcase> There are one or more test cases in a test suite. A test passed
+        if there isn't an additional result element (skipped, failure, error).
+
+        name        The name of this test case, often the method name
+        classname   The name of the parent class/folder, often the same as the suite's name
+        assertions  Number of assertions checked during test case execution
+        time        Execution time of the test in seconds
+        file        Source code file of this test case
+        line        Source code line number of the start of this test case
+        -->
+        <testcase name="registration1" classname="LIS.Registration" assertions="2"
+            time="2.436" file="tests/registration.cs" line="24" />
+        <testcase name="registration2" classname="LIS.Registration" assertions="6"
+            time="1.534" file="tests/registration.cs" line="62" />
+        <testcase name="registration3" classname="LIS.Registration" assertions="3"
+            time="0.822" file="tests/registration.cs" line="102" />
+
+        <!-- Example of a test case that was skipped -->
+        <testcase name="registration4" classname="LIS.Registration" assertions="0"
+            time="0" file="tests/registration.cs" line="164">
+            <!-- <skipped> Indicates that the test was not executed. Can have an optional
+            message describing why the test was skipped. -->
+            <skipped message="Test was skipped." />
+        </testcase>
+
+        <!-- Example of a test case that failed with different types of attachment. -->
+        <testcase name="registration5" classname="LIS.Registration" assertions="2"
+            time="2.902412" file="tests/registration.cs" line="202">
+            <!-- <failure> The test failed because one of the assertions/checks failed.
+            Can have a message and failure type, often the assertion type or class. The text
+            content of the element often includes the failure description or stack trace. -->
+            <failure message="Expected value did not match." type="AssertionError">
+                Resource: Login Page
+                File: /Login.aspx
+                URL: https://www.libraryinformationsystem.org
+                Expected 'librarian', found 'borrower'
+            </failure>
+            <properties>
+                <property name="attachment" value="screenshots/home.png" />
+                <property name="attachment" value="screenshots/login.png" />
+                <property name="attachment1" value="https://github.com/Inflectra/spira-addons-xunit-python/tree/main/samples/screenshots/home.png" />
+                <property name="attachment2" value="https://github.com/Inflectra/spira-addons-xunit-python/tree/main/samples/screenshots/login.png" />
+            </properties>
+        </testcase>
+
+        <!-- Example of a test case that had errors. -->
+        <testcase name="registration6" classname="LIS.Registration" assertions="0"
+            time="3.819" file="tests/registration.cs" line="235">
+            <!-- <error> The test had an unexpected error during execution. Can have a
+            message and error type, often the exception type or class. The text
+            content of the element often includes the error description or stack trace. -->
+            <error message="Division by zero." type="ArithmeticError">
+                15. var x = total / count;
+            </error>
+        </testcase>
+
+        <!-- Example of a test case with outputs. -->
+        <testcase name="registration7" classname="LIS.Registration" assertions="3"
+            time="2.944" file="tests/registration.cs" line="287">
+            <!-- <system-out> Optional data written to standard out for the test case. -->
+            <system-out>
+                Data written to standard out.
+            </system-out>
+
+            <!-- <system-err> Optional data written to standard error for the test case, including attachments. -->
+            <system-err>
+                Data written to standard error.
+                [[ATTACHMENT|screenshots/home.png]]
+                [[ATTACHMENT|screenshots/login.png]]
+            </system-err>
+        </testcase>
+
+        <!-- Example of a test case with properties and attachments -->
+        <testcase name="registration8" classname="LIS.Registration" assertions="4"
+            time="1.625275" file="tests/registration.cs" line="302">
+            <!-- <properties> Some tools also support properties for test cases. -->
+            <properties>
+                <property name="priority" value="2 - High" />
+                <property name="language" value="en-US" />
+                <property name="author" value="Fred Bloggs" />
+                <property name="attachment" value="screenshots/home.png" />
+                <property name="attachment" value="screenshots/login.png" />
+                <property name="description">
+                    This text describes the purpose of this test case and provides
+                    an overview of what the test does and how it works.
+                </property>
+            </properties>
+        </testcase>
+    </testsuite>
+</testsuites>
+```
