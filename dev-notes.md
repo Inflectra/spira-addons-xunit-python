@@ -4,19 +4,18 @@
 - install python 3.6+
 - install pip
 - update pip as required
-- install robotframework `pip install robotframework`
 - install twine for distribution `pip install twine`
 
-## Running the sample
+## Running the samples
 - Make sure the spira url and login/password are correct in the spira.cfg file
-- Use either of these two commands, depending on whether you want to test running with a specific output folder/filename
-- run `python robot_spira_integration.py`
-- run `python robot_spira_integration.py Output.xml spira.cfg`
+- Use either of these two samples:
+- run `python spira_xunit_reader.py samples\junit-basic.xml spira.cfg`
+- run `python spira_xunit_reader.py samples\junit-complete.xml spira.cfg`
 
 ## Work and test code locally
 - change version number in setup.py
 - to build locally and replace the local package run `pip install -e ./`
-- you can then access the package as you would normally. So in your test setup run `python robot_spira_integration.py` and it will use this local plugin
+- you can then access the package as you would normally. So in your test setup run `python spira_xunit_reader.py` and it will use this local plugin
 - make changes to code, repeat building and testing locally 
 
 ## Distribute code
@@ -31,7 +30,3 @@
 
 # Useful links
 https://packaging.python.org/tutorials/packaging-projects/
-
-# Other information
-To create an xunit XML file (not needed for Spira integration, but useful for other tools)
-`rebot -R --xunit xunit.xml output*.xml`
