@@ -147,11 +147,23 @@ In this example we have several screenshots attached as well:
 
 If you click on one of the **failed** test runs, it will display the name of the test case from the xUnit XML file, together with the status (fail), the test set, release and actual duration:
 
-![A sample failed xUnit test run as it looks in Spira](images/robot-framework-failed-test-run-1.png)
+![A sample failed xUnit test run as it looks in Spira](img/xunit_spira_test_run_failed1.png)
 
-If you scroll down to the **Console Output** section, it displays the full name and path of the Robot Framework test case as well as the contents of the **Documentation** attribute and in this case, the details of what caused the test to fail:
+If you scroll down to the **Console Output** section, it displays the full name and path of the xUnit test case as well as the details of what caused the test to fail as well as any test case properties or standard output/error streams.
 
-![A sample failed xUnit test run as it looks in Spira](images/robot-framework-failed-test-run-2.png)
+In this example we have several screenshots attached as well:
+
+![A sample failed xUnit test run's screenshots in Spira](img/xunit_spira_test_run_failed2.png)
+
+The integration supports both file attachments (which are uploaded to Spira) and URL attachments which are simply linked.
+
+Finally, if you enabled the feature to **create builds**, you will also see a new build entry in Spira:
+
+![A sample xUnit build entry in Spira](img/xunit_spira_build1.png)
+
+If you scroll down to the **Full Log** section you can see any attributes from the overall xUnit run, including the number of failed tests and assertions:
+
+![A sample xUnit build entry in Spira](img/xunit_spira_build2.png)
 
 Congratulations, you have now executed your xUnit framework tests and integrated the reporting with Spira.
 
